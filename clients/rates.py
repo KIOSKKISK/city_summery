@@ -1,5 +1,6 @@
-from clients.http import get
 import requests
+
+from clients.http import get
 
 
 def get_rate(currency: str) -> float:
@@ -10,6 +11,20 @@ def get_rate(currency: str) -> float:
     except requests.exceptions.HTTPError:
         raise ValueError("Валюта не найдена")
 
-    data = response.json()
+    try:
+        data = response.json()
+    except ValueError:
+        raise RuntimeError("Сервис валют вернул некорректный JSON")
 
-    return float(data["rate"])
+    if not isinstance(data, dict):
+        raise RuntimeError("Некорректный ответ сервиса валют")
+
+    if "rate" not in data:
+        raise RuntimeError("В ответе сервиса валют отсутствует курс")
+
+    rate = data["rate"]
+
+    if not isinstance(rate, (int, float)) or isinstance(rate, bool):
+        raise RuntimeError("Некорректное значение курса")
+
+    return float(rate)

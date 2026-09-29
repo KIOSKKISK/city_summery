@@ -12,17 +12,20 @@ def get(url: str, params: dict | None = None) -> requests.Response:
                 timeout=10,
             )
 
+            # Слишком много запросов
             if response.status_code == 429:
                 retry_after = response.headers.get("Retry-After")
 
                 if retry_after and retry_after.isdigit():
-                    time.sleep(int(retry_after))
-                    continue
+                    if attempt < 2:
+                        time.sleep(int(retry_after))
+                        continue
 
                 raise requests.exceptions.RequestException(
                     "Слишком много запросов"
                 )
 
+            # Временная ошибка сервера
             if response.status_code in (500, 502, 503, 504):
                 if attempt < 2:
                     time.sleep(1)
@@ -40,4 +43,6 @@ def get(url: str, params: dict | None = None) -> requests.Response:
 
             time.sleep(1)
 
-    raise requests.exceptions.RequestException("Сервис недоступен")
+    raise requests.exceptions.RequestException(
+        "Внешний сервис недоступен после повторных попыток"
+    )
